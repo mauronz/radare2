@@ -3078,7 +3078,8 @@ static void bin_elf_versioninfo(RCore *r, int mode) {
 	bool firstit_dowhile_verneed = true;
 	do {
 		char *verneed_path = r_str_newf (format, "verneed", num_verneed++);
-		if (!(sdb = sdb_ns_path (r->sdb, verneed_path, 0))) {
+		if (!verneed_path || !(sdb = sdb_ns_path (r->sdb, verneed_path, 0))) {
+			free (verneed_path);
 			break;
 		}
 		if (IS_MODE_JSON (mode)) {

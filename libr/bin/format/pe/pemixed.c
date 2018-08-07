@@ -29,16 +29,17 @@ static int r_bin_pemixed_init(struct r_bin_pemixed_obj_t* bin, struct PE_(r_bin_
 struct PE_(r_bin_pe_obj_t)* r_bin_pemixed_init_dos(struct PE_(r_bin_pe_obj_t)* pe_bin) {
 	struct PE_(r_bin_pe_obj_t)* sub_bin_dos = R_NEW0 (struct PE_(r_bin_pe_obj_t));
 	ut8 * tmp_buf;
-
 	ut64 pe_hdr_off = pe_bin->dos_header->e_lfanew;
 
 	//idk if this is the most efficient way but could not find a function to read
 	//RBuffer into another RBuffer
 	if (!(tmp_buf = malloc (pe_hdr_off))) {
+		free (sub_bin_dos);
 		return NULL;
 	}
 
 	if ((r_buf_read_at (pe_bin->b, 0, tmp_buf, pe_hdr_off)) == -1) {
+		PE_(r_bin_pe_free) (sub_bin_dos);
 		eprintf ("Error reading to buffer\n");
 		return NULL;
 	}
@@ -56,13 +57,13 @@ struct PE_(r_bin_pe_obj_t)* r_bin_pemixed_init_dos(struct PE_(r_bin_pe_obj_t)* p
 }
 
 struct PE_(r_bin_pe_obj_t)* r_bin_pemixed_init_native(struct PE_(r_bin_pe_obj_t)* pe_bin) {
-	ut8* zero_out;
-	ut64 b_size;
-
 	struct PE_(r_bin_pe_obj_t)* sub_bin_native = R_NEW0 (struct PE_(r_bin_pe_obj_t));
-	memcpy (sub_bin_native, pe_bin, sizeof(struct PE_(r_bin_pe_obj_t)));
+	if (!sub_bin_native) {
+		return NULL;
+	}
+	memcpy (sub_bin_native, pe_bin, sizeof (struct PE_(r_bin_pe_obj_t)));
 
-	b_size = pe_bin->b->length;
+	ut64 b_size = pe_bin->b->length;
 
 	//copy pe_bin->b and assign to sub_bin_native
 
@@ -86,7 +87,8 @@ struct PE_(r_bin_pe_obj_t)* r_bin_pemixed_init_native(struct PE_(r_bin_pe_obj_t)
 	dotnet_offset += sizeof (PE_(image_nt_headers));
 	dotnet_offset -= sizeof (PE_(image_data_directory)) * 2;
 
-	if (!(zero_out = calloc (2, sizeof (ut32)))) {
+	ut8* zero_out = calloc (2, sizeof (ut32));
+	if (!zero_out) {
 		// can't call PE_(r_bin_pe_free) since this will free the underlying pe_bin
 		// object which we may need for later
 		// PE_(r_bin_pe_free) (sub_bin_native);
