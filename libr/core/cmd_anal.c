@@ -5754,7 +5754,7 @@ static void cmd_anal_constant(RCore *core, char *input) {
         char *key = r_str_newf("%u", value); 
         int size = sdb_array_size(CDB, key); 
         if (input[0] == 'j') {
-            r_cons_printf("{\"value\":%u,names:[", value); 
+            r_cons_printf("{\"value\":%u,\"names\":[", value); 
         }
         else {
             r_cons_printf("Constant names for 0x%x:\n", value); 
