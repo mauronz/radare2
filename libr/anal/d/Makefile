@@ -40,6 +40,7 @@ endif
 SDB=$(SDBPATH)/sdb${BUILD_EXT_EXE}
 
 FCNSIGNPATH=$(DESTDIR)$(DATADIR)/radare2/$(VERSION)/fcnsign
+CONSTPATH=$(DESTDIR)$(DATADIR)/radare2/$(VERSION)/constants
 
 all: ${SDB}
 	@$(MAKE) compile
@@ -73,6 +74,9 @@ install: ${F_SDB}
 	rm -rf "${FCNSIGNPATH}"
 	mkdir -p "${FCNSIGNPATH}"
 	cp -f *.sdb "${FCNSIGNPATH}"
+	cp test.sdb.1 test.sdb
+	mkdir -p "${CONSTPATH}"
+	mv -f test.sdb "${CONSTPATH}"
 
 CWD=$(shell pwd)
 symstall install-symlink: ${F_SDB}

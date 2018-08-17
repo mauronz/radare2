@@ -5720,6 +5720,66 @@ static void cmd_anal_hint(RCore *core, const char *input) {
 	}
 }
 
+static void cmd_anal_constant(RCore *core, char *input) {
+    unsigned int value;
+    bool found_value = false;
+    char *argument = input[0] == 'j'? input + 1 : input;
+    switch (argument[0]) {
+    case '\0': {
+        RAnalOp op;
+        int ret = r_anal_op(core->anal, &op, core->offset, core->block, core->blocksize, R_ANAL_OP_MASK_ESIL);
+        char *opex_string = R_STRBUF_SAFEGET(&op.opex);
+        char *ptr = opex_string;
+        while ((ptr = strstr(ptr, "type"))) {
+            ptr += 7;
+            if (!memcmp(ptr, "imm", 3)) {
+                ptr = strstr(ptr, "value") + 7;
+                value = r_num_math(core->num, ptr);
+                found_value = true;
+                break;
+            }
+        }
+        free(opex_string);
+    } break;
+    case ' ': {
+        value = r_num_math(core->num, argument + 1);
+        found_value = true;
+    } break;
+    }
+    
+    if (found_value) {
+        char *path = r_str_newf(R_JOIN_3_PATHS("%s", R2_SDB, "constants"), r_sys_prefix(NULL)); 
+        Sdb *CDB = sdb_new(path, "test.sdb", 0); 
+        free(path); 
+        char *key = r_str_newf("%u", value); 
+        int size = sdb_array_size(CDB, key); 
+        if (input[0] == 'j') {
+            r_cons_printf("{\"value\":%u,names:[", value); 
+        }
+        else {
+            r_cons_printf("Constant names for 0x%x:\n", value); 
+        }
+        for (int i = 0; i < size; i++) { 
+            char *name = sdb_array_get(CDB, key, i, NULL); 
+            if (input[0] == 'j') {
+                if (i > 0) {
+                    r_cons_print(", ");
+                }
+                r_cons_printf("\"%s\"", name);
+            }
+            else {
+                r_cons_println(name); 
+            }
+            free(name); 
+        }
+        if (input[0] == 'j') {
+            r_cons_println("]}");
+        } 
+        free(key); 
+        sdb_free(CDB);
+    }
+}
+
 static void agraph_print_node_gml(RANode *n, void *user) {
 	r_cons_printf ("  node [\n"
 		"    id  %d\n"
@@ -7303,6 +7363,9 @@ static int cmd_anal(void *data, const char *input) {
 	case 'h': // "ah"
 		cmd_anal_hint (core, input + 1);
 		break;
+    case 'C':
+        cmd_anal_constant(core, input + 1);
+        break;
 	case '!': // "a!"
 		if (core->anal && core->anal->cur && core->anal->cur->cmd_ext) {
 			return core->anal->cur->cmd_ext (core->anal, input + 1);
